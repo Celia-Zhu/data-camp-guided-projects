@@ -24,7 +24,7 @@ Life expectancy at birth can vary along time or between countries because of man
 
 Let's create some plots to explore the inequalities about life expectancy at birth around the world. We will use a dataset from the United Nations Statistics Division, which is available [here](http://data.un.org/Data.aspx?d=GenderStat&f=inID:37&c=1,2,3,4,5,6&s=crEngName:asc,sgvEngName:asc,timeEngName:desc&v=1).
 
-```{r loading data, echo=FALSE}
+```{r loading data, warning=FALSE, message=FALSE}
 life_expectancy <- read.csv("datasets/UNdata.csv")
 head(life_expectancy)
 ```
@@ -33,7 +33,7 @@ head(life_expectancy)
 
 Let's manipulate the data to make our exploration easier. We will build the dataset for our first plot in which we will represent the average life expectancy of men and women across countries for the last period recorded in our data (2000-2005).
 
-```{r average life expectancy of men and women across countries 2000-2005, echo=FALSE}
+```{r average life expectancy of men and women across countries 2000-2005, warning=FALSE, message=FALSE}
 # Reshaping the long data into wide data
 subdata <- life_expectancy  %>% 
     filter(Year == "2000-2005")%>%
@@ -44,7 +44,7 @@ head(subdata)
 ```
 
 ## Visualize average life expectancy of men and women across countries from 2000 to 2005
-```{r Visualize average life expectancy of men and women across countries 2000-2005, echo=FALSE}
+```{r Visualize average life expectancy of men and women across countries 2000-2005, warning=FALSE, message=FALSE}
 # Plotting male and female life expectancy
 sub_plot <- ggplot(subdata, aes(x = Male, y = Female))+
             geom_point()+
@@ -60,7 +60,7 @@ sub_plot
 ```
 
 ## Highlighting countries where gender gap in average life expectancy from 2000 to 2005 is high
-```{r Highlighting countries}
+```{r Highlighting countries, warning=FALSE, message=FALSE}
 # Subsetting top 3 countries where gender gap in life expectancy is high
 top_male <- subdata %>% arrange(Male-Female) %>% head(3)
 top_female <- subdata %>% arrange(Female-Male) %>% head(3)
@@ -84,7 +84,7 @@ ggplot(subdata, aes(x=Male, y=Female, label = Country.or.Area))+
 Since our data contains historical information, let's see now how life expectancy has evolved in recent years. Our second plot will represent the difference between men and women across countries between two periods: 2000-2005 and 1985-1990.
 
 Let's start building a dataset called subdata2 for our second plot.
-```{r Build subdata2 evolution of life expectancy by gender, echo=FALSE}
+```{r Build subdata2 evolution of life expectancy by gender, warning=FALSE, message=FALSE}
 # Subsetting, mutating and reshaping the life expectancy data
 subdata2 <- life_expectancy %>% 
   filter(Year %in% c("1985-1990", "2000-2005")) %>% 
@@ -100,7 +100,7 @@ head(subdata2)
 ```
 ## Visualize how has life expectancy by gender has evolved
 Now let's create our second plot in which we will represent average life expectancy differences between "1985-1990" and "2000-2005" for men and women.
-```{r Visualize the evolution of life expectancy by gender}
+```{r Visualize the evolution of life expectancy by gender, warning=FALSE, message=FALSE}
 ggplot(subdata2, aes(x=diff_Male, y=diff_Female, label=Country.or.Area))+
   geom_point(colour="white", fill="chartreuse3", shape=21, alpha=.55, size=5)+
   geom_abline(intercept = 0, slope = 1, linetype=2)+
@@ -117,7 +117,7 @@ theme_bw()
 ```
 10. Highlighting remarkable countries in the evolution of gender gap of life expectancy
 As we did in the first plot, let's label some points. Concretely, we will point those three where the aggregated average life expectancy for men and women increased most and those three where decreased most in the period.
-```{r Highlighting remarkable countries}
+```{r Highlighting remarkable countries, warning=FALSE, message=FALSE}
 top <- subdata2 %>% arrange(diff_Male+diff_Female) %>% head(3)
 bottom <- subdata2 %>% arrange(desc(diff_Male+diff_Female)) %>% head(3)
 
