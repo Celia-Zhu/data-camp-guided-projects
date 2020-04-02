@@ -1,0 +1,8 @@
+"0","# Loading the tidyverse"
+"0","library(tidyverse)"
+"0",""
+"0","# Reading in the taxi data"
+"0","taxi <- read_csv(""datasets/taxi.csv"")"
+"0",""
+"0","# Taking a look at the first few rows in taxi"
+"0","head(taxi)"
