@@ -1,0 +1,2 @@
+load("/Users/zhuxiling/OneDrive - The University of Chicago/R projects/data-camp-guided-projects/Predict Taxi Fares with Random Forests/datasets/manhattan.rds")
+load("/Users/zhuxiling/OneDrive - The University of Chicago/R projects/data-camp-guided-projects/Predict Taxi Fares with Random Forests/datasets/nycmap.rds")
