@@ -20,6 +20,15 @@ knitr::knit_hooks$set(mysize = function(before, options, envir) {
   if (before) 
     return(options$size)
 })
+```{r indent = "   "}
+Let's practice how to merge in command line or GitHub.
+
+Library(ggplot2)
+library(janitor)
+library(dplyr)
+ggplot()+
+geom_line()
+```
 
 #console printing options -----
 
