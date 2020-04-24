@@ -1,0 +1,871 @@
+---
+title: "Lecture 2 -- Data Transformation with `dplyr` -- R4DS Chapter 5"
+author: "Peter Ganong"
+date: "2020-04-13"
+output: 
+  beamer_presentation:
+    toc: true
+    fig_width: 6
+    fig_height: 4
+    includes:
+      in_header: misc/header_pagenrs.tex
+---
+
+```{r setup, include=FALSE}
+#default: show code
+knitr::opts_chunk$set(echo = TRUE)
+
+#function for changing text size
+knitr::knit_hooks$set(mysize = function(before, options, envir) {
+  if (before) 
+    return(options$size)
+})
+
+#console printing options -----
+
+#set console output to 50 characters so it fits on slide
+options(width = 50)
+
+#set console output so tibbles print 4 rows
+options(tibble.print_min = 4)
+
+#load tidyverse
+library(tidyverse)
+```
+
+
+
+
+# Filter rows with `filter()`
+
+## `filter()` roadmap
+* new dataset
+* example
+* analogies to other languages
+* syntax
+    * three ways to say equals in R
+    * filter from a list
+* challenges
+
+
+## load flight data
+
+```{r, mysize=TRUE, size = '\\small'}
+library(nycflights13)  #load nycflights, part of tidyverse
+flights <- nycflights13::flights  #name is flights
+```
+
+## print flight data
+
+```{r, mysize=TRUE, size = '\\small'}
+print(flights)
+```
+
+## reminder: help
+
+```{r, eval = FALSE}
+?flights
+```
+
+## Data types
+
+| r | type | example columns |
+| --- | --- | --- | 
+| `int` | integer | `year, month` | 
+| `dbl` |  double (decimals) | `distance` | 
+| `chr` | character | `carrier` | 
+| `dttm` | date-time | `time_hour` | 
+|  |   |   |      
+| `lgl` | logical (TRUE or FALSE) | coming this lecture | 
+| `fctr` | factor (categorical variable) | coming in Ch 15 | 
+
+
+## Question: Which flights happened in January?
+
+```{r, mysize=TRUE, size = '\\small'}
+#336776 flights in 2013
+filter(flights, month == 1) 
+```
+
+## `filter()` analogies
+
+* data frame: `flights`
+* condition: `month` is 1
+
+```{r eval = FALSE}
+filter(flights, month == 1)             #r dplyr
+
+keep if month == 1                      #stata
+flights.loc[flights['month'] == 1]      #python pandas
+select * from flights where month = 1   #sql
+```
+
+## Syntax: `dplyr`
+
+```{r eval = FALSE}
+filter(flights, month == 1)
+```
+
+\normalsize
+
+Properties
+
+1. `verb(data_frame, action)`
+2. Returns a new data frame
+
+All five verbs in `dplyr` have these same two properties
+
+## Syntax: three ways to say "equals"
+
+Operator | Role | Example
+-------- | ---- | -------
+`<-` | assigning values | `df <- flights`
+`=` | arguments to functions | `ggplot(data = mpg)`
+`==` | test equality | `filter(flights, month == 1)`
+
+
+
+```{r,  error = TRUE, mysize = TRUE, size = '\\small'}
+filter(flights, month = 1)
+```
+
+## Q: What flights happened in Apr, Aug & Dec?
+
+```{r, eval = FALSE}
+#long way
+filter(flights, month == 4 | month == 8 | month == 12)
+
+#short, clear way
+mos_list <- c(4, 8, 12)
+filter(flights, month %in% mos_list)
+```
+
+* close cousins of `%in%` exist in Python, Stata, & SQL
+
+## Challenge: Floating point errors
+
+```{r}
+sqrt(2) ^ 2 == 2      #floating point error
+
+#what's going on here?
+options(digits = 20)  #display 20 digits (default: 7)
+sqrt(2)^2             #oops, not exactly 2! 
+```
+
+```{r, include = FALSE}
+#set console to print 3 digits after decimal point
+options(digits = 3)
+```
+
+## Solution: `near`
+
+```{r}
+sqrt(2) ^ 2 == 2      #floating point error
+near(sqrt(2) ^ 2, 2)  
+```
+
+## Missing values example
+```{r}
+flights %>% filter(flight == 4308 & month == 1 & day == 1)
+```
+
+## Challenge: Missing values are contagious
+
+```{r}
+NA > 5
+NA + 10
+(3 + 4 + 5 + NA) / 4
+```
+
+
+## Solution: Use `is.na()` to test for missing 
+```{r}
+df <- tibble(x = c(1, NA, 3)) #tibble defines a new data frame
+filter(df, x > 1)
+filter(df, is.na(x) | x > 1)
+```
+
+## `filter()` summary
+
+* Question: What flights happened in January?
+    * Tool: `filter`
+    * Answer: 27004 rows in Jan out of 336776 in 2013
+* Syntax
+    * Three ways to say equals (`<-`,`=`, `==`)
+    * `%in%` for lists
+* Challenges
+    * Floating point errors. Use `near`
+    * Missing values are contagious. Always check `is.na()`
+    
+## do-pair-share exercise
+
+* Using `filter`
+    * how many flights left between 5AM and 6AM?
+    * how many flights have a missing departure time?
+* Bonus: answer both questions in a single line of code
+
+# Arrange rows with `arrange()`, select columns with `select()`
+
+## Roadmap: `arrange()` and `select()` 
+
+* `arrange()`
+    * example
+    * analogies
+    * syntax
+* `select()`
+    * example
+    * analogies
+    * syntax
+    * cousin: `rename` a column
+
+## Question: Which flights happened first in 2013?
+
+```{r}
+arrange(flights, month, day)
+```
+
+## `arrange` analogies
+
+* data frame: flights
+* sort by: month, day
+
+```{r eval = FALSE}
+arrange(flights, month, day)             #r
+
+sort month day                            #stata
+flights.sort_values(by=['month','day'])   #pandas
+select * from flights order by month, day #sql
+```
+
+##  Question: Which flights had the latest departure time?
+
+```{r }
+arrange(flights, desc(dep_time)) #descending order
+```
+
+## `arrange()` syntax: missing values always come last
+
+```{r, mysize=TRUE}
+df <- tribble(
+  ~x,
+  5, 
+  2, 
+  NA
+)
+df
+```
+
+```{r,  eval = FALSE}
+arrange(df, x) #try these now
+arrange(df, desc(x))
+```
+
+## Problem: print tries to show the whole data frame
+```{r}
+print(flights)
+```
+
+## Question: What day did a flight take off?
+```{r}
+# Select columns by name
+select(flights, year, month, day)
+```
+
+## `select()` analogies
+
+```{r, eval = FALSE}
+# Select columns by name
+select(flights, year, month, day)    #r dplyr
+
+flights[['year','month','day']]      #python pandas
+select year, month, day from flights #sql
+keep year month day                  #stata
+```
+
+## `select()` syntax: Describe all columns between year and day (inclusive)
+```{r}
+select(flights, year:day)
+```
+
+## `select()` syntax: Describe all columns except those between year and day
+```{r}
+select(flights, -(year:day))
+```
+
+## `select()` syntax: Describe all columns whose name ends "time"
+```{r}
+select(flights, ends_with("time"))
+```
+
+## `select()` syntax: short column names
+
+* `ends_with("xyz")`: matches names that end with "xyz".
+
+* `starts_with("abc")`: matches names that begin with "abc".
+
+* `contains("ijk")`: matches names that contain "ijk".
+
+
+## `select()` syntax: reorder columns
+
+```{r}
+select(flights, time_hour, air_time, everything())
+```
+
+## `rename` syntax: rename variables
+
+```{r}
+rename(flights, mo = month)
+```
+
+## Summary: `arrange()` and `select()` 
+* Arrange rows with `arrange()`
+    * `desc` to order largest to smallest
+    
+* select columns with `select()`
+    * `a:b` captures all columns between two names
+    * `starts_with(), ends_with(), contains()`
+    * reorder with `everything()`
+    * `rename` to change column name
+
+   
+## exercise
+
+`select` columns with `dep`arture information
+
+Raise your hand when you have a proposal
+
+# Add new variables with `mutate()`
+
+## roadmap: `mutate()`
+
+* example
+* analogies
+* cousin: `transmute`
+* use with vectorized functions
+
+## `mutate()` analogies
+
+```{r eval = FALSE}
+mutate(flights, gain = arr_delay - dep_delay) #r dplyr
+
+gen gain = arr_delay - dep_delay              #stata
+flights.assign(gain=flights.arr_delay-flights.dep_delay) 
+    #python pandas
+select *, arr_delay - dep_delay as gain from flights     
+    #sql
+```
+
+
+## Question: Did flight make up for delays in the air?
+```{r}
+flights_sml <- select(flights, ends_with("delay"))
+mutate(flights_sml,
+  gain = arr_delay - dep_delay
+)
+```
+
+
+## Question: How fast (in miles per hour)?
+```{r}
+flights_sml <- select(flights, distance, air_time)
+mutate(flights_sml,
+  speed = (distance / air_time) * 60
+)
+```
+
+
+## `mutate` syntax: can work with columns created on the fly
+```{r}
+flights_sml <- select(flights, 
+                      ends_with("delay"), air_time)
+mutate(flights_sml,
+  gain = arr_delay - dep_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours
+)
+```
+
+## `transmute` syntax
+
+```{r}
+#shortcut for select and mutate
+transmute(flights,
+  arr_delay,
+  gain = arr_delay - dep_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours
+)
+```
+
+## `mutate` -- vectorized functions -- math
+
+```{r}
+1 + 3 #scalar
+c(1,2) + c(3,4) #vector
+```
+
+* `+` is a "vectorized function" because it takes one or more vectors and returns another vector
+
+* Examples
+    * Arithmetic operators `+`, `-`, `*`, `/`, `^`
+    * Logical comparisons `<`, `<=`, `>`, `>=`, `!=`
+    * `log()`, `sqrt()`
+
+* I call these "simple" vectorized functions because input and output are in same row
+
+## `mutate` -- vectorized window functions -- lags
+```{r, cache = TRUE}
+x <- 1:5
+tibble(x, behind = lag(x))
+```
+
+## `mutate` -- vectorized window functions -- leads
+
+```{r}
+tibble(x, ahead = lead(x))
+```
+
+## `mutate` -- vectorized window functions -- ranks
+```{r}
+y <- c(1, 2, 2, NA, 3, 4)
+tibble(y, rank = min_rank(y))
+```
+
+* set ties to min value
+* doesn't count NAs
+* see also `dense_rank`, `percent_rank`, `ntile`
+
+## Summary: `mutate`
+
+* `mutate` constructs a new column
+
+* cousin `transmute` combines `select` and `mutate`
+
+* New concept -- vectorized functions
+    * Take a vector and return a vector
+    * Examples
+        * math (scalar -> scalar)
+        * lags & leads & rank ("window": vector -> vector)
+
+## Meta comment: Question, Query, Result, Answer
+
+1. Question. _Has fuel efficiency improved?_
+1. Query `geom_point() + geom_smooth()` 
+1. Result 
+  ```{r echo=FALSE,  message = FALSE, fig.height = 1}
+  ggplot(data = mpg, aes(x = displ, y = hwy, 
+                         color = factor(year))) + 
+    geom_smooth(se = FALSE) +
+    geom_point(alpha = 0.1)
+  ```
+1. Answer in a sentence. _Yes + 4 sub-messages_
+
+
+# Grouped summaries with `summarise()`
+
+## Roadmap: `summarise`
+
+* Analogies
+
+* Example 1 -- How late are departures by day?
+
+* Example 2 -- How does distance to destination affect delays?
+    * missing values
+
+* Syntax -- `group_by` 
+
+
+
+## `summarise()` analogies
+
+```{r, eval = FALSE}
+summarise(flights,mean(dep_delay))  #r dplyr
+
+sum dep_delay                           #stata
+flights[['dep_delay']].mean()           #python pandas
+select avg(dep_delay) from flights      #sql
+```
+
+
+## Question: How late are departures on average?
+```{r}
+summarise(flights, delay = mean(dep_delay, na.rm = TRUE))
+```
+
+
+## Question: How late are departures by day? `group_by`
+```{r eval = FALSE}
+by_day <- group_by(flights, month, day) #r dplyr
+summarise(by_day, mean(dep_delay, na.rm = TRUE))
+
+collapse dep_delay, by(month day)       #stata             
+select avg(dep_delay) from flights      #sql
+  group by month, day
+```
+
+* `group_by` operator enables "window functions"
+    * works with `summarise` and `mutate`
+    
+## Question: How late are departures by day? `group_by`
+```{r}
+by_day <- group_by(flights, year, month, day)
+summarise(by_day, delay = mean(dep_delay, na.rm = TRUE))
+```
+
+
+## Challenge: Missing values are contagious
+
+```{r}
+fl <- group_by(flights,year, month, day)
+summarise(fl,mean = mean(dep_delay))
+mean(c(1,2,3,NA)) 
+```
+
+## dplyr requires you to explicitly specify what to do with NAs to avoid errors
+```{r}
+summarise(fl,mean = mean(dep_delay, na.rm = TRUE))
+```
+
+```{r, cache = TRUE}
+not_cancelled <- filter(flights,!is.na(dep_delay), !is.na(arr_delay))
+```
+
+## Question: How does distance to destination affect delays?
+```{r}
+# 1.  Group flights by destination.
+by_dest <- group_by(not_cancelled, dest) 
+
+# 2.  Summarise to compute number of flights,  
+#     distance, and average delay 
+delays_dest <- summarise(by_dest,
+  count = n(),
+  dist = mean(distance),
+  delay = mean(arr_delay)
+)
+
+#3.  Filter to remove noisy points
+delays_dest <- filter(delays_dest, count > 365, 
+                      dest != "HNL")
+```
+
+## Syntax: Pipes `%>%` to write code how you think
+
+1.  Group flights by destination.
+
+1.  Summarise to compute number of flights, distance, and average delay.
+
+1.  Filter to remove noisy points
+
+```{r, eval = FALSE}
+delays_dest <- not_cancelled %>%      #pipe 1
+  group_by(dest) %>%                  #pipe 2, step 1
+  summarise(                          #step 2
+    count = n(),
+    dist = mean(distance),
+    delay = mean(arr_delay)
+  ) %>%                               #pipe 3
+  filter(count > 400, dest != "HNL")  #step 3
+```
+
+
+## `group_by` is persistent
+
+```{r cache = TRUE, mysize=TRUE, size = '\\footnotesize'}
+by_mo_day <- group_by(not_cancelled, month, day) 
+by_mo_day %>% summarise(mean(arr_delay))
+
+by_mo_day %>% summarise(mean(dep_delay))
+```
+
+## print to check `group_by` structure
+
+```{r mysize=TRUE, size = '\\footnotesize'}
+by_mo_day 
+by_mo_day %>% ungroup
+```
+
+## each call to `summarise()` removes a layer of grouping
+
+```{r mysize=TRUE, size = '\\footnotesize'}
+by_mo_day %>% 
+  summarise(delay = mean(arr_delay)) %>% 
+  summarise(n(), mean(delay))
+```
+
+## Summary: `summarise`
+
+* `summarise` alone produces one row
+* `summarise` and `group_by` produce one row per group
+
+```{r, eval = FALSE}
+#group_by and summarise work together
+not_cancelled %>% 
+  group_by(dest) %>% #pipes to write code how you think              
+  summarise(delay = mean(arr_delay))
+```
+
+* Syntax: 
+    * Be sure to specify `na.rm`
+    * `group_by` is persistent
+    * each call to `summarise` removes a layer of grouping
+
+# Many uses of `summarise()`
+
+## Roadmap: many uses of `summarise()`
+
+* Question: Which planes are slowest on average?
+    * Challenge in real-world data
+    
+* `summarise` for 
+    * central tendency
+    * dispersion
+    * rank
+    * count
+    * share
+    
+## Question: Which planes are slowest on average?
+```{r, cache = TRUE, message = FALSE, fig.height = 3}
+delays_tail <- 
+  not_cancelled %>% 
+  group_by(tailnum) %>% 
+  summarise(delay = mean(arr_delay), n_flights = n())
+ggplot(delays_tail, aes(x = delay)) + 
+  geom_freqpoly()
+```
+
+## Challenge: what do the slowest planes have in common?
+<!-- voiceover: the natural thing in lecture 1 would have been to plot 
+the data by some kind of class so that we can study these outliers-->
+```{r, fig.height = 3.5}
+ggplot(delays_tail, aes(x = n_flights, y = delay)) + 
+  geom_point(alpha = 1/10)
+```
+
+## Question: Which planes are slowest on average?
+```{r, fig.height = 3.5}
+delays_tail %>% 
+  filter(n_flights > 25) %>% 
+  ggplot(aes(x = n_flights, y = delay)) + 
+    geom_point(alpha = 1/10)
+```
+
+## Question: How late are flights typically by day? `mean`, `median`
+```{r, mysize=TRUE, size = '\\small'}
+not_cancelled %>% 
+  group_by(year, month, day) %>% 
+  summarise( #measures of central tendency
+    mean_d = mean(arr_delay),
+    median_d = median(arr_delay)
+  )
+```
+
+## Question: How unpredictable are delays? `sd`, `IQR`, `mad`
+```{r, mysize=TRUE, size = '\\small'}
+not_cancelled %>% 
+  group_by(year, month, day) %>% 
+  summarise( #measures of dispersion
+    sd_delay = sd(arr_delay), #standard deviation
+    iqr_delay = IQR(arr_delay), #interquartile range
+    mad_delay = mad(arr_delay) #mean absolute deviation
+)
+```
+
+
+## Q: When do the first and last flights leave? `min`, `max`
+```{r, mysize=TRUE, size = '\\small'}
+not_cancelled %>% 
+  group_by(year, month, day) %>% 
+  summarise( #measures of rank
+    first = min(dep_time),
+    last = max(dep_time),
+    pctile_25 = quantile(dep_time, 0.25) #25th percentile
+  )
+```
+
+## Question: How many flights by destination? 
+```{r}
+not_cancelled %>% 
+  group_by(dest) %>%
+  summarise(n = n())
+```
+
+
+## Question: How many flights by destination? `count`
+```{r}
+not_cancelled %>% 
+  count(dest)
+```
+
+## Q: Which destinations have the most flights? `count`
+```{r}
+not_cancelled %>% 
+  count(dest) %>%
+  arrange(desc(n))
+```
+
+## New variable: carrier
+```{r}
+not_cancelled %>% select(carrier,everything())
+```
+
+## Q: Which destinations have the most carriers? `n_distinct`
+```{r}
+not_cancelled %>% 
+  group_by(dest) %>% 
+  summarise(n_flights = n(), 
+            n_carriers = n_distinct(carrier)) %>% 
+  arrange(desc(n_carriers))
+```
+
+## Q: How many flights left before 5am? `TRUE/FALSE`
+```{r }
+not_cancelled <- not_cancelled %>% 
+  mutate(leave_early = dep_time < 500)
+not_cancelled %>% select(leave_early, everything())
+```
+
+## Q: How many flights left before 5am? `TRUE/FALSE`
+```{r}
+not_cancelled <- not_cancelled %>% 
+  mutate(leave_early = dep_time < 500) 
+not_cancelled %>% 
+  group_by(leave_early) %>%
+  summarise(n = n())
+```
+
+## Q: How many flights left before 5am? `TRUE/FALSE`
+```{r}
+not_cancelled %>% #mutate and count all at once
+  count(leave_early = dep_time < 500)
+```
+
+## Which code is better? aside on coding style
+```{r eval = FALSE}
+not_cancelled <- not_cancelled %>%         #block A
+  mutate(leave_early = dep_time < 500) %>% #verb A1 
+  group_by(leave_early) %>%                #verb A2
+  summarise(n = n())                       #verb A3
+
+not_cancelled %>%                          #block B
+  count(leave_early = dep_time < 500)      #verb B1
+```
+
+* My view: shorter is better IF the code is easy to read. In this example, I prefer block B.
+
+## Question: What share of flights are delayed? `TRUE/FALSE`
+```{r}
+not_cancelled %>% #mutate and summarise all at once
+  summarise(share_delay = mean(arr_delay > 0))
+```
+
+## Summarise: `summarise`
+
+Goal  | vector -> scalar
+------------- | -------------
+central tendency  | `mean`, `median`
+dispersion | `sd`, `IQR`, `mad`
+rank | `min`, `quantile`, `max`
+frequency  | `count`, `n_distinct`
+proportion | `mean(value > x))`
+
+* Challenge with real-world data: pay attention to sample counts by cell
+    * Planes that look chronically tardy usually have very few flights
+
+* Write the shortest readable code you can
+
+# Grouped `mutate` and `filter`
+
+## roadmap: grouped `mutate` and `filter`
+
+* recap vectorized functions
+* examples 
+    * what are the 5 latest flights each day?
+    * find flights to popular destinations
+
+## vectorized functions redux 
+
+```{r}
+df <- tibble(gp = c(rep("A",3), rep("B",3)), x = 1:6)
+df %>% group_by(gp) %>% 
+  mutate(mean_x = mean(x), diff_from_mean = x - mean_x) 
+```
+
+* "summary" function `mean(x)` copies *same* value to every cell 
+* `by gp: egen mean_x = mean(x) #stata`
+    
+## vectorized functions redux 
+
+```{r mysize=TRUE, size = '\\small'}
+df %>% 
+  group_by(gp) %>% 
+  mutate(rank_x = rank(x), lag_x = lag(x), cum_x = cumsum(x))
+```
+
+* "window" function `rank(x)` copies *different* value to every cell
+* `by gp: egen rank_x = rank(x) #stata`
+
+## Question: What are the 5 latest flights each day?
+
+```{r mysize=TRUE, size = '\\small'}
+flights %>%   
+  group_by(year, month, day) %>% 
+  mutate(delay_rank = rank(desc(arr_delay))) %>% #grouped mutate             
+  filter(delay_rank <= 5) %>%                    #filter
+  select(delay_rank, everything())
+```
+
+## Question: What are the 5 latest flights each day?
+
+```{r mysize=TRUE, size = '\\small'}
+flights %>% # grouped mutate inside filter
+  group_by(year, month, day) %>%
+  filter(rank(desc(arr_delay)) <= 5)
+```
+
+## Coding style aside: Which is better?
+
+```{r eval = FALSE}
+slowest_days <- flights %>%       #block a
+  group_by(year, month, day) %>% 
+  mutate(delay_rank = rank(desc(arr_delay))) 
+slowest_days %>% 
+  filter(delay_rank <= 5) 
+
+flights %>%                       #block b
+  group_by(year, month, day) %>%
+  filter(rank(desc(arr_delay)) <= 5)
+```
+
+* B is shorter
+* But A conveys what we did with the data better
+* I slightly prefer A. But B is fine too.
+
+## Find flights to popular destinations
+
+```{r, mysize=TRUE, size = '\\small'}
+(popular_dests <- 
+   flights %>% 
+     group_by(dest) %>% 
+     filter(n() > 365)) %>% 
+     select(dest, everything())
+```
+
+## Summary: grouped mutates and filters
+
+* Sometimes you want to summarise the data without collapsing it
+
+goal | function
+------ | --------
+collapse rows | `summarise`
+preserve all rows | grouped `mutate`
+preseve some rows | grouped `filter`
+
+## dplyr cheatsheet
+```{r, echo = FALSE, out.width = "100%"}
+knitr::include_graphics("gr/lec2/dplyr_cheatsheet.png")
+```
+
+## Reminders
+
+Skills PS2 due 4:59PM Friday
