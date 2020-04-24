@@ -24,8 +24,7 @@ knitr::knit_hooks$set(mysize = function(before, options, envir) {
 Let's practice how to merge in command line or GitHub.
 
 Library(ggplot2)
-library(janitor)
-library(dplyr)
+This is just a practice
 ggplot()+
 geom_line()
 ```
